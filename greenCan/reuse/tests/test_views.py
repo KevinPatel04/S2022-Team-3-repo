@@ -328,6 +328,16 @@ class TestViews(TestCase):
         response = self.client.get("%s?q=%s" % (reverse("reuse:listing-page"), "book"))
         self.assertEquals(response.status_code, 200)
         self.assertTemplateUsed(response, "listing-page.html")
+        self.assertEquals(len(response.context["q"]), len("book"))
+
+    def test_listing_page_search_trim_more_characters(self):
+        """
+        test to check if search trimed to 256 characters
+        """
+        q = "a" * 1000
+        response = self.client.get("%s?q=%s" % (reverse("reuse:listing-page"), q))
+        self.assertEquals(response.status_code, 200)
+        self.assertEquals(len(response.context["q"]), 256)
 
     def test_ngo_location_GET(self):
         """
@@ -389,7 +399,7 @@ class TestViews(TestCase):
 
     def test_ngo_locations_invalid_data(self):
         """
-        test to check if searching by user's current location is returning a valid response
+        test to check if searching by unknown type is returning a correct error message
         """
 
         response = self.client.get(self.search_ngo_locations_url + "?type=somerandomstring")
