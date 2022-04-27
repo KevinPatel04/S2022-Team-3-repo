@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from reuse.models import Post
 from recycle.models import ZipCode
 from django.core import mail
+from rewards.models import CreditsLookUp
 
 User = get_user_model()
 
@@ -48,6 +49,7 @@ class TestModerationIndexPage(TestCase):
         volunteer.staff = True
         volunteer.save()
         self.client.force_login(volunteer, backend=settings.AUTHENTICATION_BACKENDS[0])
+
         response = self.client.get(self.url)
         self.assertEquals(response.status_code, 200)
         self.assertTemplateUsed(response, "moderation/templates/index.html")
@@ -190,6 +192,8 @@ class TestSubmissionActions(TestCase):
         )
         self.post.save()
         self.url = reverse("moderation:review-post", kwargs={"id": self.post.id})
+        CreditsLookUp.objects.create(action="image", credit=5)
+        CreditsLookUp.objects.create(action="post", credit=10)
 
     def test_post_approval_email_status(self):
         self.client.force_login(self.user, backend=settings.AUTHENTICATION_BACKENDS[0])
@@ -214,7 +218,13 @@ class TestSubmissionActions(TestCase):
 
     def test_post_denial_email_subject(self):
         self.client.force_login(self.user, backend=settings.AUTHENTICATION_BACKENDS[0])
-        data = {"deny": self.post.id, "check1": "check1 reason"}
+        data = {
+            "deny": self.post.id,
+            "check1": "check1 reason",
+            "check2": "check2 reason",
+            "check3": "check3 reason",
+            "description": "description",
+        }
         self.client.post(self.url, data, follow=True)
         self.assertEqual(len(mail.outbox), 1)
         self.assertEqual(mail.outbox[0].subject, "Post " + str(self.post.title) + " denied")
